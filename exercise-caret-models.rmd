@@ -130,6 +130,11 @@ fit.c50 = train(fitformula, data = training, trControl = train, method = "C5.0",
 predict.c50 <- predict(fit.c50, testing)
 confusionMatrix(predict.c50,testing$lateflight)
 
+grid_rf <- expand.grid(.mtry = c(2, 4))
+fit.rf  <- train(fitformula, data = training, trControl = train, method = "rf", metric="Kappa",
+                 tuneGrid = grid_rf)
+predict.rf <- predict(fit.rf, testing)
+confusionMatrix(predict.rf,testing$lateflight)
 
 ```
 
