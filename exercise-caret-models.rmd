@@ -47,6 +47,7 @@ library(readr)
 library(ggplot2)
 library(magrittr)
 library(data.table)
+```
 
 ```{r load data}
 # Your Work Here
@@ -71,8 +72,9 @@ data_join$lateflight <- factor(data_join$arr_delay >= 15)
 
 #remove NA data
 data_join <- na.omit(data_join [,c("lateflight","dep_delay","month","air_time","distance","carrier","lat.y","lon.y","arr_delay")])
+```
 
-#create training data
+```{r Training data}
 set.seed(1234)
 inTraining <- createDataPartition(data_join$lateflight, p=0.75,list=FALSE)
 
@@ -81,7 +83,8 @@ inTraining <- createDataPartition(data_join$lateflight, p=0.75,list=FALSE)
 
 training <- data_join[inTraining,]
 testing <- data_join[-inTraining,]
-
+```
+```{r Training models}
 # Your work here.
 train <- trainControl(method = "cv", number = 10, selectionFunction = "best")
 
@@ -113,9 +116,9 @@ confusionMatrix(predict.rf,testing$lateflight)
 fit.c50  <- train(fitformula, data = training, trControl = train, method = "C5.0", metric="Kappa")
 predict.c50 <- predict(fit.c50, testing)
 confusionMatrix(predict.c50,testing$lateflight)
-
+```
 #tuning the model
-
+``` {r tuning two models }
 grid_c50 <- expand.grid(.model = c("rules", "tree"), 
       .trials = c(1,2,5),
       .winnow = "FALSE")
