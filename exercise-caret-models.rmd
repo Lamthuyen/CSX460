@@ -1,0 +1,143 @@
+---
+title: "Improving Model Perfromance / Tuning Parameters"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+## Tuning Parameter
+
+Generically and regardless of model type, what are the purposes of a model
+tuning parameters?
+
+Primarily tuning parameters provides the ability to improve accuracy 
+of the prediction of a machine learning model and to reduce the variance of the prediction.  
+In addition, there are other tuning paramters to control specific tasks such as : 
+  grid search, data-preprocessing, data sampling, data partitioning etc.  
+```
+```
+
+## Caret Models
+
+This assignment demonstrates the use of caret for constructing models. Each
+model should be built and compared using using `Kappa` as the performance
+metric calculated using 10-fold repeated cross-validation with 3 folds.
+
+Using the rectangular data that you created for the NYCFlights to create a model
+for arr_delay >= 15 minutes.
+
+- glm
+- rpart
+- knn
+- C50
+- randomForest
+- adaBoost
+- Two methods of your choice from the Caret Model List (you will need to install any dependencies)
+
+Save the caret objects with the names provided.
+
+```{r init, warning=FALSE, echo=FALSE, message=FALSE}
+library(rpart)
+library(caret)
+library(dplyr)
+library(pROC)
+library(partykit)
+library(readr)
+library(ggplot2)
+library(magrittr)
+library(data.table)
+
+```{r load data}
+# Your Work Here
+
+#loaddata
+
+airports <- read_csv("~/Documents/CSX460/02-building-blocks/02-exercise-nycflights/data/airports.csv") %>% setDT
+flights <- read_csv("~/Documents/CSX460/02-building-blocks/02-exercise-nycflights/data/flights.csv") %>% setDT
+planes <- read_csv("~/Documents/CSX460/02-building-blocks/02-exercise-nycflights/data/planes.csv") %>% setDT
+weather <- read_csv("~/Documents/CSX460/02-building-blocks/02-exercise-nycflights/data/weather.csv") %>% setDT
+
+data_join <- flights %>%
+  transform(dephour = floor(dep_time / 100)) %>%
+  left_join(.,planes, by=c("tailnum" = "tailnum")) %>% 
+  left_join(.,airports,by=c("origin"="faa"))  %>%
+  left_join(.,airports,by=c("dest"="faa")) %>%
+  left_join(.,weather, by=c("origin"="origin","dephour"="hour","year.x"="year","month"="month","day"="day")) 
+head(data_join)
+#isolate just the lateflight
+data_join$lateflight <- factor(data_join$arr_delay >= 15) 
+#data_join$lateflight %>% qplot
+
+#remove NA data
+data_join <- na.omit(data_join [,c("lateflight","dep_delay","month","air_time","distance","carrier","lat.y","lon.y","arr_delay")])
+
+#create training data
+set.seed(1234)
+inTraining <- createDataPartition(data_join$lateflight, p=0.75,list=FALSE)
+
+#Train the model using caret
+
+
+training <- data_join[inTraining,]
+testing <- data_join[-inTraining,]
+
+# Your work here.
+train <- trainControl(method = "cv", number = 10, selectionFunction = "best")
+
+fitformula <- lateflight ~ dep_delay + month + air_time + distance + carrier + lat.y + lon.y
+#glm
+fit.glm <- train(fitformula, data = training, trControl = train, method = "glm", metric="Kappa")
+predict.glm <- predict(fit.glm, testing)
+confusionMatrix(predict.glm,testing$lateflight)
+
+#knn
+fit.knn  <- train(fitformula, data = training, trControl = train, method = "knn",metric="Kappa")
+predict.knn <- predict(fit.knn, testing)
+confusionMatrix(predict.knn,testing$lateflight)
+  
+#rpart
+
+fit.rpart  <- train(fitformula, data = training, trControl = train, method = "rpart", metric="Kappa")
+predict.rpart <- predict(fit.knm, testing)
+cm.rpart(predict.rpart,testing$lateflight)
+
+#rf
+
+fit.rf  <- train(fitformula, data = training, trControl = train, method = "rf", metric="Kappa")
+predict.rf <- predict(fit.rf, testing)
+confusionMatrix(predict.rf,testing$lateflight)
+
+#C5.0
+
+fit.c50  <- train(fitformula, data = training, trControl = train, method = "C5.0", metric="Kappa")
+predict.c50 <- predict(fit.c50, testing)
+confusionMatrix(predict.c50,testing$lateflight)
+
+#tuning the model
+
+grid_c50 <- expand.grid(.model = c("rules", "tree"), 
+      .trials = c(1,2,5),
+      .winnow = "FALSE")
+
+fit.c50 = train(fitformula, data = training, trControl = train, method = "C5.0", 
+                metric="Kappa",
+                tuneGrid = grid_c50)
+
+predict.c50 <- predict(fit.c50, testing)
+confusionMatrix(predict.c50,testing$lateflight)
+
+
+```
+
+Compare the  models?
+
+The confusion matrix of each model is displayed.  We will use the results of the cm as the 
+basis to compare the models.  
+
+Which is best?  Why?
+
+In terms of best accuracy and kappa, the random forest model is best.  It seems to be overfitting.
+
+```
+```
